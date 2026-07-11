@@ -1,0 +1,26 @@
+# AWS credentials - NEVER commit these
+.aws/
+credentials
+*.pem
+.env
+
+# Build artifacts
+function.zip
+response.json
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+crash.log
+
+# OS files
+.DS_Store
+Thumbs.db
