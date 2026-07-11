@@ -20,6 +20,13 @@
 - Cleaned up: dropped temporary credentials, returned terminal to oladimeji_admin.
 - Set up GitHub repo, .gitignore (to protect credentials/artifacts), committed all work.
 
-## Day 3 — Infrastructure as Code (Terraform) — IN PROGRESS
+## Day 3 — Infrastructure as Code (Terraform)
 - Installed Terraform via winget.
-- Next: define the vulnerable environment (both roles, trust policies, permissions) as Terraform code in infra/, so the whole lab can be built/destroyed with one command.
+- Learned Infrastructure-as-Code concepts: provider (which cloud), resource (a thing to create), state (Terraform's record of what it built).
+- Wrote infra/provider.tf (targets AWS, us-east-1) and infra/iam_roles.tf.
+- Defined low-priv-ec2-role-tf in code: trusted by EC2, with an inline policy granting iam:PassRole, lambda:CreateFunction, lambda:InvokeFunction (the "foothold").
+- Defined admin-lambda-execution-role-tf in code: trusted by Lambda, with AWS-managed AdministratorAccess attached (the "prize").
+- Learned the difference between inline policies (custom, written by me) vs managed policies (AWS pre-built, attached by ARN).
+- Ran terraform init / plan / apply to build the full vulnerable lab from code. Verified roles appeared in AWS console.
+- Configured .gitignore to exclude Terraform state (terraform.tfstate), the .terraform/ provider folder, and credentials — while committing the .tf source files.
+- Result: the entire privilege-escalation lab can now be rebuilt or destroyed with a single command, and is version-controlled on GitHub.
