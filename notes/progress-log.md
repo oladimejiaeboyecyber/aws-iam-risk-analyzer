@@ -30,3 +30,9 @@
 - Ran terraform init / plan / apply to build the full vulnerable lab from code. Verified roles appeared in AWS console.
 - Configured .gitignore to exclude Terraform state (terraform.tfstate), the .terraform/ provider folder, and credentials — while committing the .tf source files.
 - Result: the entire privilege-escalation lab can now be rebuilt or destroyed with a single command, and is version-controlled on GitHub.
+## Day 4 — The Analyzer: Collector (Stage 1)
+- Installed Python 3.12 and set up an isolated virtual environment (venv); installed boto3.
+- Learned the analyzer's 5 stages: Collect -> Model -> Detect -> Score -> Report.
+- Built analyzer/collector.py using boto3: connects to AWS and pulls every IAM role, its trust policy, inline policies, and attached managed policies.
+- Successfully enumerated all roles in the account (including hand-made, Terraform-created, and AWS service roles).
+- Known limitation (documented for future work): current collector doesn't paginate, so it would only see the first 100 roles in a large account. Real-scale tools also need parallel calls and rate-limit backoff (as tools like PMapper/Cartography do). Fine for this lab's ~8 roles.

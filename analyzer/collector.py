@@ -48,3 +48,4 @@ if __name__ == '__main__':
         print(f"- {r['name']}")
         print(f"    inline policies: {[p['name'] for p in r['inline_policies']]}")
         print(f"    attached policies: {[p['name'] for p in r['attached_policies']]}")
+    
