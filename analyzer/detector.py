@@ -41,16 +41,42 @@ def check_passrole_lambda(role):
                       'allowing escalation by attaching a privileged role to attacker-controlled code.'
         }
     return None
+def check_self_permission_modification(role):
+    """Rule 2: flag roles that can modify their own permissions."""
+    # These permissions let a role rewrite/attach policies - i.e. grant itself more power
+    dangerous_actions = [
+        'iam:AttachRolePolicy',
+        'iam:PutRolePolicy',
+        'iam:CreatePolicyVersion',
+        'iam:AttachUserPolicy',
+        'iam:PutUserPolicy'
+    ]
 
+    all_actions = []
+    for policy in role['inline_policies']:
+        all_actions.extend(extract_actions(policy['document']))
+
+    # Find which dangerous actions this role has (if any)
+    found = [action for action in dangerous_actions if action in all_actions]
+
+    if found:
+        return {
+            'rule': 'Self-Permission Modification',
+            'role': role['name'],
+            'reason': f'Role can modify permissions using {found}, '
+                      f'allowing it to grant itself additional privileges (including admin).'
+        }
+    return None
 
 def run_detection():
     roles = collect_roles()
     findings = []
 
     for role in roles:
-        result = check_passrole_lambda(role)
-        if result:
-            findings.append(result)
+        for check in [check_passrole_lambda, check_self_permission_modification]:
+            result = check(role)
+            if result:
+                findings.append(result)
 
     return findings
 
