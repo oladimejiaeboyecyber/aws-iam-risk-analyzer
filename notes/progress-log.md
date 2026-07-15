@@ -36,3 +36,34 @@
 - Built analyzer/collector.py using boto3: connects to AWS and pulls every IAM role, its trust policy, inline policies, and attached managed policies.
 - Successfully enumerated all roles in the account (including hand-made, Terraform-created, and AWS service roles).
 - Known limitation (documented for future work): current collector doesn't paginate, so it would only see the first 100 roles in a large account. Real-scale tools also need parallel calls and rate-limit backoff (as tools like PMapper/Cartography do). Fine for this lab's ~8 roles.
+## Day 4 (cont.) — Detection Engine (Stage 3, all 4 rules)
+- Built analyzer/detector.py, which imports the collector and analyzes every role.
+- Wrote a helper (extract_actions) to normalize AWS's inconsistent policy format (single vs list, string vs array).
+- Rule 1 — PassRole + Lambda: flags roles with both iam:PassRole and lambda:CreateFunction.
+- Rule 2 — Self-Permission Modification: flags roles that can edit their own permissions (iam:AttachRolePolicy, PutRolePolicy, CreatePolicyVersion, AttachUserPolicy, PutUserPolicy).
+- Rule 3 — Wildcard Admin: flags inline policies granting Action:* on Resource:* (effective admin).
+- Rule 4 — Permissive Trust Policy: flags trust policies allowing Principal "*" (anyone can assume the role). This rule inspects the TRUST policy (who can assume) vs Rules 1-3 which inspect permissions (what it can do).
+- Structured run_detection to loop over a list of check functions, so adding rules is trivial.
+- Deleted the console-made self-modify-role; recreated it plus wildcard and open-trust test roles entirely in Terraform. The lab now provisions one deliberately-vulnerable role per rule, all as code.
+- Verified: all 4 rules flag exactly their intended roles (5 findings), and safe roles (S3 read-only, AWS service roles) are correctly NOT flagged (no false positives).
+- Known design note: Rules 1-3 inspect inline policies; roles with admin via attached managed policies aren't caught by the wildcard rule (documented as a future enhancement).
+## Day 4 (cont.) — Scoring, Reporting & Packaging
+
+### Risk Scoring (Stage 4)
+- Added a severity map to the detector (CRITICAL / HIGH / MEDIUM) based on impact + exploitability, mirroring CVSS-style reasoning.
+- Rule 4 (permissive trust) = CRITICAL (anyone can assume, no foothold needed); Rules 2 & 3 = HIGH; Rule 1 = MEDIUM (requires foothold + multi-step escalation).
+- Findings are now sorted most-severe-first, with a summary line (e.g. "1 CRITICAL, 2 HIGH, 2 MEDIUM").
+
+### Report Generation (Stage 5)
+- Built analyzer/report.py: runs the full pipeline (collector -> detector) and writes two outputs:
+  - reports/risk-report.json (machine-readable)
+  - reports/risk-report.md (human-readable, with summary, findings table, and detailed reasons)
+
+### Packaging & Documentation
+- Created requirements.txt (pip freeze) so the project is reproducible.
+- Wrote a full README: problem statement, architecture (collect -> detect -> report), the 4 detection rules, setup/run instructions, sample-report screenshot, and a "what I learned" section.
+- Captured a screenshot of the rendered risk report (reports/sample-report.png) as visual proof of function.
+- Verified repo hygiene: only source code, Terraform config, docs, and sample reports are tracked — no state files, credentials, or build artifacts.
+
+### Current State
+- Full working pipeline: enumerates all IAM roles, detects 4 categories of privilege-escalation risk, scores by severity, and outputs a prioritized report.
