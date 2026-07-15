@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-07-15 14:47:31",
+  "total_findings": 5,
+  "summary_by_severity": {
+    "CRITICAL": 1,
+    "HIGH": 2,
+    "MEDIUM": 2
+  },
+  "findings": [
+    {
+      "rule": "Overly Permissive Trust Policy",
+      "role": "open-trust-role-tf",
+      "reason": "Trust policy allows Principal \"*\", meaning ANY AWS account or user can assume this role.",
+      "severity": "CRITICAL"
+    },
+    {
+      "rule": "Self-Permission Modification",
+      "role": "self-modify-role-tf",
+      "reason": "Role can modify permissions using ['iam:AttachRolePolicy', 'iam:PutRolePolicy'], allowing it to grant itself additional privileges (including admin).",
+      "severity": "HIGH"
+    },
+    {
+      "rule": "Wildcard Admin (inline */*)",
+      "role": "wildcard-admin-role-tf",
+      "reason": "Role has an inline policy allowing all actions (*) on all resources (*), which is effectively full admin access.",
+      "severity": "HIGH"
+    },
+    {
+      "rule": "PassRole + Lambda Privilege Escalation",
+      "role": "low-priv-ec2-role",
+      "reason": "Role can create a Lambda function and pass a role to it, allowing escalation by attaching a privileged role to attacker-controlled code.",
+      "severity": "MEDIUM"
+    },
+    {
+      "rule": "PassRole + Lambda Privilege Escalation",
+      "role": "low-priv-ec2-role-tf",
+      "reason": "Role can create a Lambda function and pass a role to it, allowing escalation by attaching a privileged role to attacker-controlled code.",
+      "severity": "MEDIUM"
+    }
+  ]
+}
