@@ -1,5 +1,14 @@
 from collector import collect_roles
+# Severity ranking per rule (mirrors CVSS-style reasoning: impact + exploitability)
+SEVERITY = {
+    'Overly Permissive Trust Policy': 'CRITICAL',
+    'Wildcard Admin (inline */*)': 'HIGH',
+    'Self-Permission Modification': 'HIGH',
+    'PassRole + Lambda Privilege Escalation': 'MEDIUM'
+}
 
+# Numeric order so we can sort most-severe-first
+SEVERITY_ORDER = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3}
 
 def extract_actions(policy_document):
     """Pull every 'Action' out of a policy document into a flat list."""
@@ -138,14 +147,26 @@ def run_detection():
         ]:
             result = check(role)
             if result:
+                # Tag each finding with its severity
+                result['severity'] = SEVERITY.get(result['rule'], 'LOW')
                 findings.append(result)
+
+    # Sort most severe first
+    findings.sort(key=lambda f: SEVERITY_ORDER[f['severity']])
     return findings
 
 
 if __name__ == '__main__':
     findings = run_detection()
-    print(f"Detection complete. {len(findings)} finding(s):\n")
+
+    # Count by severity for a summary line
+    counts = {}
     for f in findings:
-        print(f"[!] {f['rule']}")
+        counts[f['severity']] = counts.get(f['severity'], 0) + 1
+    summary = ', '.join(f"{v} {k}" for k, v in counts.items())
+
+    print(f"Detection complete. {len(findings)} finding(s): {summary}\n")
+    for f in findings:
+        print(f"[{f['severity']}] {f['rule']}")
         print(f"    Role: {f['role']}")
         print(f"    Why:  {f['reason']}\n")
